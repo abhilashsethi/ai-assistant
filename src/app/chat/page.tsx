@@ -1,69 +1,95 @@
 "use client"
 
-import { useSession } from "next-auth/react"
 import { useState } from "react"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { WeatherCard } from "@/components/WeatherCard"
+
+type Message = {
+  role: "user" | "assistant"
+  content: string
+  tool?: string
+}
 
 export default function ChatPage() {
-  const { data: session } = useSession()
-  const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([])
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
 
-  if (!session) {
-    return <p className="p-4 text-center">You must be logged in to view this page.</p>
-  }
+  async function sendMessage() {
+    const newMessages: Message[] = [...messages, { role: "user" as const, content: input }]
 
-  const handleSend = () => {
-    if (!input.trim()) return
-    setMessages([...messages, { role: "user", content: input }])
+    setMessages(newMessages)
     setInput("")
-    // later: send to AI API + get response
+
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({ messages: newMessages }),
+    })
+
+    const reader = res.body?.getReader()
+    const decoder = new TextDecoder()
+    let assistantMessage = ""
+
+    while (true) {
+      const { value, done } = await reader!.read()
+      if (done) break
+      assistantMessage += decoder.decode(value)
+
+      try {
+        // Try to parse JSON → if it's a weather tool response
+        const parsed = JSON.parse(assistantMessage)
+        if (parsed.location && parsed.temperature) {
+          setMessages([
+            ...newMessages,
+            { role: "assistant" as const, content: assistantMessage },
+          ])
+          return
+        }
+      } catch {
+        // Not JSON, keep streaming text
+        setMessages([
+          ...newMessages,
+          { role: "assistant", content: assistantMessage },
+        ])
+      }
+    }
   }
 
   return (
-    <main className="flex flex-col h-screen">
-      {/* Header */}
-      <header className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
-          <Avatar>
-            <AvatarImage src={session.user?.image ?? ""} />
-            <AvatarFallback>{session.user?.name?.[0] ?? "U"}</AvatarFallback>
-          </Avatar>
-          <span className="font-medium">{session.user?.name}</span>
-        </div>
-        <span className="text-sm text-gray-500">AI Assistant</span>
-      </header>
+    <main className="p-6">
+      <div className="space-y-4">
+        {messages.map((m, i) => {
+          if (m.tool === "getWeather") {
+            const data = JSON.parse(m.content)
+            return (
+              <WeatherCard
+                key={i}
+                location={data.location}
+                temperature={data.temperature}
+                description={data.description}
+              />
+            )
+          }
+          return (
+            <div
+              key={i}
+              className={m.role === "user" ? "text-blue-600" : "text-green-600"}
+            >
+              <b>{m.role}:</b> {m.content}
+            </div>
+          )
+        })}
+      </div>
 
-      {/* Messages */}
-      <section className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.length === 0 && (
-          <p className="text-center text-gray-400">Start chatting...</p>
-        )}
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            className={`p-3 rounded-lg max-w-md ${m.role === "user"
-                ? "ml-auto bg-blue-500 text-white"
-                : "mr-auto bg-gray-200 text-gray-900"
-              }`}
-          >
-            {m.content}
-          </div>
-        ))}
-      </section>
-
-      {/* Input */}
-      <footer className="p-4 border-t flex gap-2">
-        <Input
+      <div className="mt-4 flex">
+        <input
+          className="border p-2 flex-1"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
-          className="flex-1"
+          placeholder="Say something..."
         />
-        <Button onClick={handleSend}>Send</Button>
-      </footer>
+        <button onClick={sendMessage} className="ml-2 p-2 bg-blue-500 text-white">
+          Send
+        </button>
+      </div>
     </main>
   )
 }
