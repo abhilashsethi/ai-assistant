@@ -1,36 +1,31 @@
-import { tool } from "ai"
+import { z } from "zod"
 
-export const getWeather = tool({
-  name: "getWeather",
-  description: "Get the current weather for a city",
+const WeatherSchema = z.object({
+  location: z.string().min(1, "Location is required"),
+})
 
-  // 👇 must be a valid JSON Schema
-  parameters: {
-    type: "object",
-    properties: {
-      location: {
-        type: "string",
-        description: "The name of the city to fetch weather for",
-      },
-    },
-    required: ["location"],
-  },
+const parameters: any = {
+  location: "",
+}
 
-  // 👇 make sure execute is typed properly
-  async execute({ location }: { location: any }) {
+export const getWeather = {
+  parameters,
+
+  async execute(params: any) {
+    // Validate input at runtime
+    const { location } = WeatherSchema.parse(params)
+
     const apiKey = process.env.OPENWEATHER_API_KEY
-    if (!apiKey) {
-      throw new Error("Missing OPENWEATHER_API_KEY in environment variables")
-    }
+    if (!apiKey) throw new Error("Missing OPENWEATHER_API_KEY")
 
-    const url = `https://api.openweathermap.org/data/2.5/weather?q=London&appid=${apiKey}&units=metric`
+    const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(
+      location
+    )}&appid=${apiKey}&units=metric`
 
     const res = await fetch(url)
     const data = await res.json()
 
-    if (data.cod !== 200) {
-      return { error: data.message }
-    }
+    if (data.cod !== 200) return { error: data.message }
 
     return {
       location: data.name,
@@ -38,4 +33,4 @@ export const getWeather = tool({
       description: data.weather[0].description,
     }
   },
-})
+}

@@ -5,6 +5,6 @@ export default defineConfig({
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL!, // Neon or Supabase connection string
+    url: process.env.DATABASE_URL!,
   },
 })

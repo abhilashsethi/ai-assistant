@@ -34,7 +34,6 @@ export default function ChatPage() {
       assistantMessage += decoder.decode(value)
 
       try {
-        // Try to parse JSON → if it's a weather tool response
         const parsed = JSON.parse(assistantMessage)
         if (parsed.location && parsed.temperature) {
           setMessages([
@@ -44,7 +43,6 @@ export default function ChatPage() {
           return
         }
       } catch {
-        // Not JSON, keep streaming text
         setMessages([
           ...newMessages,
           { role: "assistant", content: assistantMessage },

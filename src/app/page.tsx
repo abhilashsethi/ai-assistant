@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react"
 import { LoginButton } from "@/components/LoginButton"
+import Image from "next/image"
 
 export default function Home() {
   const { data: session } = useSession()
@@ -11,7 +12,7 @@ export default function Home() {
       <div className="p-6 border rounded-lg shadow-md">
         {session ? (
           <div className="space-y-4 text-center">
-            <img
+            <Image
               src={session.user?.image ?? ""}
               alt="profile"
               className="w-16 h-16 rounded-full mx-auto"

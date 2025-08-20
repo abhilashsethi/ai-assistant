@@ -1,9 +1,8 @@
+import { db } from "@/lib/db"
+import { users } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
 import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
-import GitHubProvider from "next-auth/providers/github"
-import { users } from "@/lib/db/schema"
-import { db } from "@/lib/db"
-import { eq } from "drizzle-orm"
 
 const handler = NextAuth({
   providers: [
