@@ -13,6 +13,8 @@ export default function Home() {
         {session ? (
           <div className="space-y-4 text-center">
             <Image
+              width={64}
+              height={64}
               src={session.user?.image ?? ""}
               alt="profile"
               className="w-16 h-16 rounded-full mx-auto"
